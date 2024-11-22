@@ -35,11 +35,16 @@ if serial_ok:
             if ser.in_waiting > 0:
                 raw_data = ser.readline().decode('utf-8').strip()
                 # print(raw_data)
-                quaternion = parse_data(raw_data)
+                quaternions = parse_data(raw_data)
+                if quaternions:
+                    quaternion_tibia= quaternions[0]
+                    quaternion_femur = quaternions[1]
+                    tibia_new_position = qv_mult(quaternion_tibia, (0, 0, 1))
+                    femur_new_position = qv_mult(quaternion_femur, (0, 0, 1))
 
-                if redis_ok:
-                    r.publish(CHANNEL, json.dumps(quaternion))
-                    r.rpush("quaternion_list_raw", raw_data)
+                    if redis_ok:
+                        r.publish(CHANNEL, json.dumps(tibia_new_position + femur_new_position))
+                        r.rpush("quaternion_list_raw", raw_data)
 
     except KeyboardInterrupt:
         print("Exiting program.")

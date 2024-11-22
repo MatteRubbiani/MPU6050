@@ -10,7 +10,6 @@ async def handler(websocket):
     try:
         # Listen for incoming messages from this specific client
         async for message in websocket:
-            print(f"Received message from client: {message}")
             # Broadcast the received message to all connected clients
             await broadcast(message)
     except websockets.exceptions.ConnectionClosed:

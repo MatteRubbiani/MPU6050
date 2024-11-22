@@ -31,7 +31,7 @@ void setup() {
   // it seems that we cannot use too high clock rate, due to the long I2C wire.
   // cannot flash firmware if signal integrity is too bad.
   // Wire.setClock(400000);
-  Wire.setClock(100000);
+  Wire.setClock(1000);
 
   Serial.begin(115200);
   
@@ -128,7 +128,7 @@ void loop() {
   mpu68.dmpGetQuaternion(&q68, fifo_buffer68);
   //mpu69.dmpGetQuaternion(&q69, fifo_buffer69);
   
-    if (q68 != -1) {
+   // if (q68 != -1) {
     Serial.print(q68.w);Serial.print(", ");
     Serial.print(q68.x);Serial.print(", ");
     Serial.print(q68.y);Serial.print(", ");
@@ -137,17 +137,17 @@ void loop() {
     Serial.print(q68.x);Serial.print(", ");
     Serial.print(q68.y);Serial.print(", ");
     Serial.print(-q68.z);Serial.print("\n");
-  } 
-    else {
-    Serial.print(1);Serial.print(", ");
-    Serial.print(0);Serial.print(", ");
-    Serial.print(0);Serial.print(", ");
-    Serial.print(0);Serial.print(", ");
-    Serial.print(1);Serial.print(", ");
-    Serial.print(0);Serial.print(", ");
-    Serial.print(0);Serial.print(", ");
-    Serial.print(0);Serial.print("\n");
-  }
+  //} 
+   // else {
+   // Serial.print(1);Serial.print(", ");
+   // Serial.print(0);Serial.print(", ");
+   // Serial.print(0);Serial.print(", ");
+   // Serial.print(0);Serial.print(", ");
+   // Serial.print(1);Serial.print(", ");
+   // Serial.print(0);Serial.print(", ");
+   // Serial.print(0);Serial.print(", ");
+   // Serial.print(0);Serial.print("\n");
+ // }
   
 
 

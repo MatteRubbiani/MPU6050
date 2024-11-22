@@ -10,20 +10,26 @@ async def send_data(_pubsub):
     Connect to a WebSocket server and send data.
     """
     websocket_url = "ws://localhost:8765"  # Replace with your WebSocket server URL
-    try:
-        async with websockets.connect(websocket_url) as websocket:
-            # Continuously listen for new messages
-            for message in _pubsub.listen():
-                # Message type 'message' means it is a published message
-                if message['type'] == 'message':
-                    data = message['data'].decode('utf-8')
-                    if websocket is not None:
-                        await websocket.send(data)
-                        print(f"Sent: {data}")
-                    else:
-                        print("Failed to connect to websocket")
-    except Exception as e:
-        print(f"Error: {e}")
+    while True:
+        try:
+            async with websockets.connect(websocket_url) as websocket:
+                # Continuously listen for new messages
+                for message in _pubsub.listen():
+                    # Message type 'message' means it is a published message
+                    if message['type'] == 'message':
+                        data = message['data'].decode('utf-8')
+                        if websocket is not None:
+                            try:
+                                await websocket.send(data)
+                            except:
+                                print("something went wrong")
+                                break
+                            # print(f"Sent: {data}")
+                        else:
+                            print("Failed to connect to websocket")
+        except Exception as e:
+            print(f"Error: {e}")
+
 
 
 # Run the WebSocket client

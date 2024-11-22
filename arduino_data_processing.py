@@ -2,7 +2,7 @@ def parse_data(data):
     # Assumes data is in the format: "w, x , y , z\n" (comma-separated)
     try:
         w, x, y, z, w1, x1, y1, z1 = map(float, data.strip().split(', '))
-        return [w, x, y, z]
+        return [w, x, y, z], [w1, x1, y1, z1]
     except ValueError:
         print(f"Invalid data format: {data}")
         return None
