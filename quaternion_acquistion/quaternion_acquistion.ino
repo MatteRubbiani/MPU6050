@@ -106,7 +106,7 @@ void setup() {
   Serial.print("{\"key\": \"/log\", \"value\": \"Enabling DMP...\", \"level\": \"DEBUG\"}\n");
   mpu68.setDMPEnabled(true);
   //mpu69.setDMPEnabled(true);
-  Serial.print("{\"key\": \"/log\", \"value\": \"Device ready.\", \"level\": \"INFO\"}\n");
+  Serial.print("{\"Device ready\n");
 }
 
 void loop() {
@@ -128,15 +128,27 @@ void loop() {
   mpu68.dmpGetQuaternion(&q68, fifo_buffer68);
   //mpu69.dmpGetQuaternion(&q69, fifo_buffer69);
   
+    if (q68 != -1) {
+    Serial.print(q68.w);Serial.print(", ");
+    Serial.print(q68.x);Serial.print(", ");
+    Serial.print(q68.y);Serial.print(", ");
+    Serial.print(q68.z);Serial.print(", ");
+    Serial.print(q68.w);Serial.print(", ");
+    Serial.print(q68.x);Serial.print(", ");
+    Serial.print(q68.y);Serial.print(", ");
+    Serial.print(-q68.z);Serial.print("\n");
+  } 
+    else {
+    Serial.print(1);Serial.print(", ");
+    Serial.print(0);Serial.print(", ");
+    Serial.print(0);Serial.print(", ");
+    Serial.print(0);Serial.print(", ");
+    Serial.print(1);Serial.print(", ");
+    Serial.print(0);Serial.print(", ");
+    Serial.print(0);Serial.print(", ");
+    Serial.print(0);Serial.print("\n");
+  }
   
-  Serial.print(q68.w);Serial.print(", ");
-  Serial.print(q68.x);Serial.print(", ");
-  Serial.print(q68.y);Serial.print(", ");
-  Serial.print(q68.z);Serial.print(", ");
-  Serial.print(q68.w);Serial.print(", ");
-  Serial.print(q68.x);Serial.print(", ");
-  Serial.print(q68.y);Serial.print(", ");
-  Serial.print(-q68.z);Serial.print("\n");
 
 
 
