@@ -36,7 +36,7 @@ void setup() {
   Serial.begin(115200);
   
   // initialize device
-  Serial.print("{\"key\": \"/log\", \"value\": \"Initializing device 0x68...\", \"level\": \"DEBUG\"}\n");
+  Serial.print("1, 0, 0, 0, 1, 0, 0, 0");
   mpu68.initialize();
   error_code = mpu68.dmpInitialize();
   
@@ -103,10 +103,10 @@ void setup() {
   Serial.print("\n");
   
   // turn on the DMP, now that it's ready
-  Serial.print("{\"key\": \"/log\", \"value\": \"Enabling DMP...\", \"level\": \"DEBUG\"}\n");
+  Serial.print("1, 0, 0, 0, 1, 0, 0, 0");
   mpu68.setDMPEnabled(true);
   //mpu69.setDMPEnabled(true);
-  Serial.print("{\"Device ready\n");
+  Serial.print("1, 0, 0, 0, 1, 0, 0, 0");
 }
 
 void loop() {
