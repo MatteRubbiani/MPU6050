@@ -1,4 +1,3 @@
-
 #include "Wire.h"
 #include "I2Cdev.h"
 #include "MPU6050_6Axis_MotionApps612.h"
@@ -19,9 +18,14 @@
  * ADDR high = 0x69
  */
 
+void resetI2C() {
+  Wire.end();  // Termina la comunicazione I²C
+  delay(100);  // Aspetta un momento
+  Wire.begin();  // Riavvia il bus I²C;
+}
+
 // initialize the two MPUs with their I2C ID
 MPU6050 mpu68(0x68);
-//MPU6050 mpu69(0x69);
 
 uint8_t error_code = 0U;      // return status after each device operation (0 = success, !0 = error)
 
@@ -36,7 +40,6 @@ void setup() {
   Serial.begin(115200);
   
   // initialize device
-  Serial.print("1, 0, 0, 0, 1, 0, 0, 0");
   mpu68.initialize();
   error_code = mpu68.dmpInitialize();
   
@@ -52,29 +55,10 @@ void setup() {
     while (1) {}
   }
   
-  //Serial.print("{\"key\": \"/log\", \"value\": \"Initializing device 0x69...\", \"level\": \"DEBUG\"}\n");
-  //mpu69.initialize();"
-  //error_code = mpu69.dmpInitialize();"
-
-  // 1 = initial memory load failed
-  // 2 = DMP configuration updates failed
-  // (if it's going to break, usually the code will be 1)
-  //if (error_code == 1U) {
-    //Serial.print("{\"key\": \"/log\", \"value\": \"device 0x68 initialization failed: initial memory load failed.\", \"level\": \"ERROR\"}\n");
-    //while (1) {}
-  //}
-  //if (error_code == 2U) {
-    //Serial.print("{\"key\": \"/log\", \"value\": \"device 0x68 initialization failed: DMP configuration updates failed.\", \"level\": \"ERROR\"}\n");
-    //while (1) {}
-  //}
-
   // verify connection
   if (!mpu68.testConnection()) {
     Serial.print("{\"key\": \"/log\", \"value\": \"device 0x68 connection failed.\", \"level\": \"ERROR\"}\n"); 
   }
-  //if (!mpu69.testConnection()) {
-    //Serial.print("{\"key\": \"/log\", \"value\": \"device 0x69 connection failed.\", \"level\": \"ERROR\"}\n");
-  //}
 
   // supply your own gyro offsets here, scaled for min sensitivity
   mpu68.setXGyroOffset(0);
@@ -83,79 +67,44 @@ void setup() {
   mpu68.setXAccelOffset(0);
   mpu68.setYAccelOffset(0);
   mpu68.setZAccelOffset(0);
-  
-  //mpu69.setXGyroOffset(0);
-  //mpu69.setYGyroOffset(0);
-  //mpu69.setZGyroOffset(0);
-  //mpu69.setXAccelOffset(0);
-  //mpu69.setYAccelOffset(0);
-  //mpu69.setZAccelOffset(0);
-
-  
+   
   // Calibration Time: generate offsets and calibrate our MPU6050
   mpu68.CalibrateAccel(10);
   mpu68.CalibrateGyro(10);
-  
-  //mpu69.CalibrateAccel(10);
-  //mpu69.CalibrateGyro(10);
 
   // calibration procedure will dump garbage on serial, we use a newline to fence it
   Serial.print("\n");
   
   // turn on the DMP, now that it's ready
-  Serial.print("1, 0, 0, 0, 1, 0, 0, 0");
   mpu68.setDMPEnabled(true);
   //mpu69.setDMPEnabled(true);
-  Serial.print("1, 0, 0, 0, 1, 0, 0, 0");
 }
 
+// orientation/motion vars
+Quaternion q68;           // [w, x, y, z]         quaternion container
+
+ 
 void loop() {
+  // test the connection before trying to get the data
+  while (!mpu68.testConnection()) {
+    resetI2C();
+  }
+  
   // Get the Latest packet 
   uint8_t fifo_buffer68[64]; // FIFO storage buffer
   if (!mpu68.dmpGetCurrentFIFOPacket(fifo_buffer68)) {
     return;
   }
-
-  //uint8_t fifo_buffer69[64]; // FIFO storage buffer
-  //if (!mpu69.dmpGetCurrentFIFOPacket(fifo_buffer69)) {
-    //return;
-  //}
   
-  // orientation/motion vars
-  Quaternion q68;           // [w, x, y, z]         quaternion container
-  //Quaternion q69;           // [w, x, y, z]         quaternion container
-
   mpu68.dmpGetQuaternion(&q68, fifo_buffer68);
-  //mpu69.dmpGetQuaternion(&q69, fifo_buffer69);
-  
-   // if (q68 != -1) {
-    Serial.print(q68.w);Serial.print(", ");
-    Serial.print(q68.x);Serial.print(", ");
-    Serial.print(q68.y);Serial.print(", ");
-    Serial.print(q68.z);Serial.print(", ");
-    Serial.print(q68.w);Serial.print(", ");
-    Serial.print(q68.x);Serial.print(", ");
-    Serial.print(q68.y);Serial.print(", ");
-    Serial.print(-q68.z);Serial.print("\n");
-  //} 
-   // else {
-   // Serial.print(1);Serial.print(", ");
-   // Serial.print(0);Serial.print(", ");
-   // Serial.print(0);Serial.print(", ");
-   // Serial.print(0);Serial.print(", ");
-   // Serial.print(1);Serial.print(", ");
-   // Serial.print(0);Serial.print(", ");
-   // Serial.print(0);Serial.print(", ");
-   // Serial.print(0);Serial.print("\n");
- // }
-  
 
-
-
-  //Serial.print(", ");
-  //Serial.print(q69.w);Serial.print(", ");
-  //Serial.print(q69.x);Serial.print(", ");
-  //Serial.print(q69.y);Serial.print(", ");
-  //Serial.print(q69.z);Serial.print("\n");
+  Serial.print(q68.w);Serial.print(", ");
+  Serial.print(q68.x);Serial.print(", ");
+  Serial.print(q68.y);Serial.print(", ");
+  Serial.print(q68.z);Serial.print(", ");
+  Serial.print(q68.w);Serial.print(", ");
+  Serial.print(q68.x);Serial.print(", ");
+  Serial.print(q68.y);Serial.print(", ");
+  Serial.print(-q68.z);Serial.print("\n");
 
 }
