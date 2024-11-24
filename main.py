@@ -4,8 +4,8 @@ import redis
 import serial
 import time
 
-from arduino_data_processing import parse_data, qv_mult
-from constants import CHANNEL, ARDUINO_PORT, BAUD_RATE, PYTHON_SAMPLING_RATE, QUATERNIONS
+from arduino_data_processing import parse_data, qv_mult, quaternions_to_vectors
+from constants import CHANNEL, ARDUINO_PORT, BAUD_RATE, PYTHON_SAMPLING_RATE, QUATERNIONS, VECTORS_TIBIA, VECTORS_FEMUR
 
 redis_ok = False
 serial_ok = False
@@ -34,17 +34,12 @@ if serial_ok:
             time.sleep(PYTHON_SAMPLING_RATE)
             if ser.in_waiting > 0:
                 raw_data = ser.readline().decode('utf-8').strip()
-                # print(raw_data)
                 quaternions = parse_data(raw_data)
                 if quaternions:
-                    quaternion_tibia= quaternions[0]
-                    quaternion_femur = quaternions[1]
-                    tibia_new_position = qv_mult(quaternion_tibia, (0, 0, 1))
-                    femur_new_position = qv_mult(quaternion_femur, (0, 0, 1))
-
+                    tibia_new_vector, femur_new_vector = quaternions_to_vectors()
                     if redis_ok:
-                        r.publish(CHANNEL, json.dumps(tibia_new_position + femur_new_position))
-                        r.rpush("quaternion_list_raw", raw_data)
+                        r.publish(CHANNEL, json.dumps(tibia_new_vector + femur_new_vector))
+                        # r.rpush("quaternion_list_raw", raw_data)
 
     except KeyboardInterrupt:
         print("Exiting program.")
@@ -55,11 +50,11 @@ if serial_ok:
         print("Serial connection closed.")
 else:
     for i in range(1000000):
-        q = QUATERNIONS[i%len(QUATERNIONS)]
+        tibia_new_vector = VECTORS_TIBIA[i%len(VECTORS_TIBIA)]
+        femur_new_vector = VECTORS_FEMUR[i%len(VECTORS_FEMUR)]
         if redis_ok:
-            v_new_position = qv_mult(q, (0, 0, 1))
-            raw_data = json.dumps(v_new_position)
+            raw_data = json.dumps(femur_new_vector + tibia_new_vector)
             r.publish(CHANNEL, raw_data)
             r.rpush("quaternion_list_raw", raw_data)
-            time.sleep(0.1)
+            time.sleep(0.01)
 

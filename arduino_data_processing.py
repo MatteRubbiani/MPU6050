@@ -7,6 +7,12 @@ def parse_data(data):
         print(f"Invalid data format: {data}")
         return None
 
+def quaternions_to_vectors(quaternions, tibia_start=(0, 0, 1), tibia_end=(0, 0, 1)):
+    quaternion_tibia = quaternions[0]
+    quaternion_femur = quaternions[1]
+    tibia_new_position = qv_mult(quaternion_tibia, tibia_start)
+    femur_new_position = qv_mult(quaternion_femur, tibia_end)
+    return tibia_new_position, femur_new_position
 
 def q_conjugate(_q):
     w, x, y, z = _q
