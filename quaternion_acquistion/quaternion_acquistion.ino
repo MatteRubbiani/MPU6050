@@ -35,7 +35,7 @@ void setup() {
   // it seems that we cannot use too high clock rate, due to the long I2C wire.
   // cannot flash firmware if signal integrity is too bad.
   // Wire.setClock(400000);
-  Wire.setClock(1000);
+  Wire.setClock(10000);
 
   Serial.begin(115200);
   
@@ -80,10 +80,6 @@ void setup() {
   //mpu69.setDMPEnabled(true);
 }
 
-// orientation/motion vars
-Quaternion q68;           // [w, x, y, z]         quaternion container
-
- 
 void loop() {
   // test the connection before trying to get the data
   while (!mpu68.testConnection()) {
@@ -95,7 +91,7 @@ void loop() {
   if (!mpu68.dmpGetCurrentFIFOPacket(fifo_buffer68)) {
     return;
   }
-  
+  Quaternion q68;
   mpu68.dmpGetQuaternion(&q68, fifo_buffer68);
 
   Serial.print(q68.w);Serial.print(", ");
