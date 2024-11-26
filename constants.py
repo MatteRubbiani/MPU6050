@@ -11,6 +11,10 @@ ARDUINO_PORT = "/dev/tty.usbmodem101"#"COM5"
 BAUD_RATE = 115200
 PYTHON_SAMPLING_RATE = 0.001
 
+# socket
+SOCKET_HOST = "localhost"
+SOCKET_PORT = 8765
+
 # register_data
 BUFFER_SIZE = 100
 RECORD_FOLDER = "recordings/"

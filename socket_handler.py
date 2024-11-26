@@ -1,6 +1,8 @@
 import asyncio
 import websockets
 
+from constants import SOCKET_PORT, SOCKET_HOST
+
 # Set to keep track of all connected clients
 connected_clients = set()
 
@@ -30,7 +32,7 @@ async def broadcast(message):
 
 # Start the WebSocket server
 async def start_server():
-    server = await websockets.serve(handler, "localhost", 8765)
+    server = await websockets.serve(handler, SOCKET_HOST, SOCKET_PORT)
     await server.wait_closed()
 
 # Run the WebSocket server
