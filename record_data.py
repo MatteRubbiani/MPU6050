@@ -14,6 +14,7 @@ def write_buffer_to_file(filename, _buffer):
         writer.writerows(_buffer)
     _buffer.clear()
 
+
 def start_new_recording():
     try:
         r = redis.Redis(host='localhost', port=REDIS_PORT, db=0)
@@ -41,16 +42,57 @@ def start_new_recording():
             i = 0
 
 
+mode = input("run from terminal or with socket? t/s")
+if mode == "t":
+    option = input("Enter to start recording, x o quit")
+    while option != "x":
+        print("recording started, enter to stop")
+        stop_event = threading.Event()
+        background_thread = threading.Thread(target=start_new_recording)
+        background_thread.start()
+        keyboard.wait("enter")
+        option = input()
+        stop_event.set()  # Signal the background thread to stop
+        background_thread.join()  # Wait for the thread to finish
+        print("Recording stopped")
+        option = input("Enter to start a new recording, x o quit")
+else:
+    from flask import Flask, request, jsonify
+    from flask_cors import CORS  # Import CORS
 
-option = input("Enter to start recording, x o quit")
-while option != "x":
-    print("recording started, enter to stop")
+    app = Flask(__name__)
+    # Enable CORS for all routes
+    CORS(app)
     stop_event = threading.Event()
-    background_thread = threading.Thread(target=start_new_recording)
-    background_thread.start()
-    keyboard.wait("enter")
-    option = input()
-    stop_event.set()  # Signal the background thread to stop
-    background_thread.join()  # Wait for the thread to finish
-    print("Recording stopped")
-    option = input("Enter to start a new recording, x o quit")
+    background_thread = None
+
+    @app.route('/start', methods=['POST'])
+    def start_background_task():
+        global background_thread
+        if background_thread is None or not background_thread.is_alive():
+            print("Starting background task...")
+            stop_event.clear()  # Reset the event to continue the task
+            background_thread = threading.Thread(target=start_new_recording)
+            background_thread.start()
+            print("Background task started.")
+            return jsonify({"message": "Background task started."}), 200
+        else:
+            print("Background task already running.")
+            return jsonify({"message": "Background task started."}), 200
+
+
+    @app.route('/stop', methods=['POST'])
+    def stop_background_task():
+        if background_thread is not None and background_thread.is_alive():
+            print("Stopping background task...")
+            stop_event.set()  # Signal the task to stop
+            background_thread.join()  # Wait for the background thread to finish
+            print("Background task stopped")
+            return jsonify({"message": "Background task started."}), 200
+        else:
+            print("No background task is running.")
+            return jsonify({"message": "Background task started."}), 200
+
+
+
+    app.run(debug=True)  # Runs the server locally at http://127.0.0.1:5000

@@ -13,6 +13,7 @@ async def send_data(_pubsub):
     while True:
         try:
             async with websockets.connect(WEBSOCKET_URL) as websocket:
+                print("Connected to WebSocket server")
                 # Continuously listen for new messages
                 for message in _pubsub.listen():
                     # Message type 'message' means it is a published message
@@ -24,7 +25,6 @@ async def send_data(_pubsub):
                             except websockets.exceptions.ConnectionClosedError:
                                 print("connection closed")
                                 break
-                            # print(f"Sent: {data}")
                         else:
                             print("Failed to connect to websocket")
         except Exception as e:
