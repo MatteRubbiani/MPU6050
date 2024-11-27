@@ -50,6 +50,7 @@ void setup() {
   int device_number = device_count();
   Wire.begin();
   Wire.setClock(400000);
+
   Serial.begin(115200);
   
   if (device_number == 1) {
@@ -157,12 +158,16 @@ void setup() {
   }
 }
 
+<<<<<<< HEAD
   // orientation/motion vars
   Quaternion q68;           // [w, x, y, z]         quaternion container
   Quaternion q69;           // [w, x, y, z]         quaternion container
  
 void loop() { 
   if (device_number == 1) {  
+=======
+void loop() {
+>>>>>>> 9c46e97a5bc43eb84d8c0832f6c9001ada4a6d17
   // test the connection before trying to get the data
   while (!mpu68.testConnection()) {
     resetI2C();
@@ -173,7 +178,7 @@ void loop() {
   if (!mpu68.dmpGetCurrentFIFOPacket(fifo_buffer68)) {
     return;
   }
-  
+  Quaternion q68;
   mpu68.dmpGetQuaternion(&q68, fifo_buffer68);
   
   // Get the timestamp

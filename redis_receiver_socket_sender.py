@@ -2,17 +2,17 @@ import asyncio
 import redis
 import websockets
 
-from constants import CHANNEL
+from constants import CHANNEL, SOCKET_HOST, SOCKET_PORT
 
+WEBSOCKET_URL = "ws://" + SOCKET_HOST + ":" + str(SOCKET_PORT)
 
 async def send_data(_pubsub):
     """
     Connect to a WebSocket server and send data.
     """
-    websocket_url = "ws://localhost:8765"  # Replace with your WebSocket server URL
     while True:
         try:
-            async with websockets.connect(websocket_url) as websocket:
+            async with websockets.connect(WEBSOCKET_URL) as websocket:
                 # Continuously listen for new messages
                 for message in _pubsub.listen():
                     # Message type 'message' means it is a published message
@@ -21,8 +21,8 @@ async def send_data(_pubsub):
                         if websocket is not None:
                             try:
                                 await websocket.send(data)
-                            except:
-                                print("something went wrong")
+                            except websockets.exceptions.ConnectionClosedError:
+                                print("connection closed")
                                 break
                             # print(f"Sent: {data}")
                         else:
