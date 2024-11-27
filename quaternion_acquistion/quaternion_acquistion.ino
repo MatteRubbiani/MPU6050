@@ -158,21 +158,18 @@ void setup() {
   }
 }
 
-<<<<<<< HEAD
+
   // orientation/motion vars
   Quaternion q68;           // [w, x, y, z]         quaternion container
   Quaternion q69;           // [w, x, y, z]         quaternion container
  
-void loop() { 
-  if (device_number == 1) {  
-=======
 void loop() {
->>>>>>> 9c46e97a5bc43eb84d8c0832f6c9001ada4a6d17
+  if (device_number == 1) { 
   // test the connection before trying to get the data
   while (!mpu68.testConnection()) {
     resetI2C();
   }
-  
+    
   // Get the Latest packet 
   uint8_t fifo_buffer68[64]; // FIFO storage buffer
   if (!mpu68.dmpGetCurrentFIFOPacket(fifo_buffer68)) {
