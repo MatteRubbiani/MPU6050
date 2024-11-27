@@ -1,18 +1,15 @@
 import numpy as np
 
+def calculate_angle_between_vectors(u, v):
 
-def angle_between_vectors(u, v):
-    """
-    Calculate the angle between two vectors using the cross product.
+    # Calculate the angle between two vectors using the cross product.
 
-    Parameters:
-    u, v : array-like
-        Input vectors.
+    # Parameters:
+    # u, v : array-like, Input vectors.
 
-    Returns:
-    tuple
-        The angle between the vectors in radians and degrees.
-    """
+    # Returns:
+    # The angle between the vectors in degrees.
+
     u = np.array(u)
     v = np.array(v)
 
@@ -29,9 +26,26 @@ def angle_between_vectors(u, v):
 
     return angle_degrees
 
-# Prova
+def calculate_angular_velocity(final_angle, initial_angle, final_timestamp, initial_timestamp):
 
+    # Calculate the angular velocity of flexion and extension
+
+    # Parameters:
+    # final_angle, initial_angle in degrees
+    # final_timestamp, initial_timestamp in ms
+
+    # Returns:
+    # Angular velocity in deg/s
+
+    delta_angle = final_angle - initial_angle
+    delta_timestamp = (final_timestamp - initial_timestamp) / 1000
+
+    return delta_angle / delta_timestamp
+
+# Prova
 u = [2, 3, 4]
 v = [1, 1, 1]
-angle_degrees = angle_between_vectors(u, v)
-print(angle_degrees)
+initial_angle_degrees = calculate_angle_between_vectors(u, v)
+final_angle_degrees = 25
+print(initial_angle_degrees)
+print(calculate_angular_velocity(final_angle_degrees, initial_angle_degrees, 2, 0))
