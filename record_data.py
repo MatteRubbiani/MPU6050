@@ -91,7 +91,7 @@ else:
             return jsonify({"message": "Background task started."}), 200
         else:
             print("No background task is running.")
-            return jsonify({"message": "Background task started."}), 200
+            return jsonify({"message": "No background task is running."}), 200
 
 
 
