@@ -1,10 +1,12 @@
 import asyncio
+
 import redis
 import websockets
 
 from constants import CHANNEL, SOCKET_HOST, SOCKET_PORT
 
 WEBSOCKET_URL = "ws://" + SOCKET_HOST + ":" + str(SOCKET_PORT)
+
 
 async def send_data(_pubsub):
     """
@@ -29,7 +31,6 @@ async def send_data(_pubsub):
                             print("Failed to connect to websocket")
         except Exception as e:
             print(f"Error: {e}")
-
 
 
 # Run the WebSocket client

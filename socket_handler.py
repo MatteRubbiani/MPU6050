@@ -1,10 +1,12 @@
 import asyncio
+
 import websockets
 
 from constants import SOCKET_PORT, SOCKET_HOST
 
 # Set to keep track of all connected clients
 connected_clients = set()
+
 
 async def handler(websocket):
     # Register the new client connection
@@ -20,6 +22,7 @@ async def handler(websocket):
         # Remove client from the set when they disconnect
         connected_clients.remove(websocket)
 
+
 # Function to broadcast messages to all connected clients
 async def broadcast(message):
     # Send the message to all connected clients
@@ -30,10 +33,12 @@ async def broadcast(message):
             # Ignore disconnected clients
             connected_clients.remove(client)
 
+
 # Start the WebSocket server
 async def start_server():
     server = await websockets.serve(handler, SOCKET_HOST, SOCKET_PORT)
     await server.wait_closed()
+
 
 # Run the WebSocket server
 asyncio.get_event_loop().run_until_complete(start_server())

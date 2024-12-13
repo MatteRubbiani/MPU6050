@@ -1,9 +1,9 @@
+import csv
 import threading
 import time
 
 import keyboard
 import redis
-import csv
 
 from constants import CHANNEL, BUFFER_SIZE, RECORD_FOLDER, REDIS_PORT
 
@@ -57,7 +57,7 @@ if mode == "t":
         print("Recording stopped")
         option = input("Enter to start a new recording, x o quit")
 else:
-    from flask import Flask, request, jsonify
+    from flask import Flask, jsonify
     from flask_cors import CORS  # Import CORS
 
     app = Flask(__name__)
@@ -65,6 +65,7 @@ else:
     CORS(app)
     stop_event = threading.Event()
     background_thread = None
+
 
     @app.route('/start', methods=['POST'])
     def start_background_task():
@@ -92,7 +93,6 @@ else:
         else:
             print("No background task is running.")
             return jsonify({"message": "No background task is running."}), 200
-
 
 
     app.run(debug=True)  # Runs the server locally at http://127.0.0.1:5000

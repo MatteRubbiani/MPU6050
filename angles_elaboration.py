@@ -1,7 +1,7 @@
 import numpy as np
 
-def calculate_angle_between_vectors(u, v):
 
+def calculate_angle_between_vectors(u, v):
     # Calculate the angle between two vectors using the cross product.
 
     # Parameters:
@@ -26,8 +26,8 @@ def calculate_angle_between_vectors(u, v):
 
     return angle_degrees
 
-def calculate_angular_velocity(final_angle, initial_angle, final_timestamp, initial_timestamp):
 
+def calculate_angular_velocity(final_angle, initial_angle, final_timestamp, initial_timestamp):
     # Calculate the angular velocity of flexion and extension
 
     # Parameters:
@@ -41,6 +41,7 @@ def calculate_angular_velocity(final_angle, initial_angle, final_timestamp, init
     delta_timestamp = (final_timestamp - initial_timestamp) / 1000
 
     return delta_angle / delta_timestamp
+
 
 # Prova
 u = [2, 3, 4]

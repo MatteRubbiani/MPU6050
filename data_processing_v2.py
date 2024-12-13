@@ -1,3 +1,6 @@
+import numpy as np
+from scipy.spatial.transform import Rotation as R
+
 
 def parse_data(data):
     try:
@@ -7,8 +10,6 @@ def parse_data(data):
         print(f"Invalid data format: {data}")
         return [None, None, None]
 
-import numpy as np
-from scipy.spatial.transform import Rotation as R
 
 def relative_quaternion(q_previous, q_current):
     # Convert quaternions to scipy Rotation objects
@@ -20,5 +21,3 @@ def relative_quaternion(q_previous, q_current):
 
     # Return the relative quaternion as [x, y, z, w]
     return r_relative.as_quat()
-
-
