@@ -52,6 +52,7 @@ void setup() {
   Wire.setClock(400000);
 
   Serial.begin(115200);
+  Serial.println("connection esablished");
   
   if (device_number == 1) {
   // initialize device
@@ -164,6 +165,7 @@ void setup() {
   Quaternion q69;           // [w, x, y, z]         quaternion container
  
 void loop() {
+  Serial.println("spoingere");
   if (device_number == 1) { 
   // test the connection before trying to get the data
   while (!mpu68.testConnection()) {
@@ -174,7 +176,7 @@ void loop() {
   uint8_t fifo_buffer68[64]; // FIFO storage buffer
   if (!mpu68.dmpGetCurrentFIFOPacket(fifo_buffer68)) {
     return;
-  }
+  } 
   Quaternion q68;
   mpu68.dmpGetQuaternion(&q68, fifo_buffer68);
   

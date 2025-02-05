@@ -11,13 +11,13 @@ def parse_data(data):
         return [None, None, None]
 
 
-def relative_quaternion(q_previous, q_current):
-    # Convert quaternions to scipy Rotation objects
-    r_previous = R.from_quat(q_previous)  # [x, y, z, w]
-    r_current = R.from_quat(q_current)  # [x, y, z, w]
+def parse_data_one_sensor(data):
+    try:
+        timestamp, q_w, q_x, q_y, q_z, p_x, p_y, p_z = map(float, data.strip().split(', '))
+        three_quaternion = (q_x, q_y, q_z, q_w)
+        accelerations = (p_x, p_y, p_z)
+        return [timestamp, three_quaternion, accelerations]
+    except ValueError:
+        print(f"Invalid data format: {data}")
+        return [None, None, None]
 
-    # Calculate the relative quaternion
-    r_relative = r_previous.inv() * r_current
-
-    # Return the relative quaternion as [x, y, z, w]
-    return r_relative.as_quat()

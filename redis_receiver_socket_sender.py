@@ -14,7 +14,7 @@ async def send_data(_pubsub):
     """
     while True:
         try:
-            async with websockets.connect(WEBSOCKET_URL) as websocket:
+            async with websockets.connect(WEBSOCKET_URL, ping_interval=30, close_timeout=100) as websocket:
                 print("Connected to WebSocket server")
                 # Continuously listen for new messages
                 for message in _pubsub.listen():

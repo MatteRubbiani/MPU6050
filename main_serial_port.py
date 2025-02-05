@@ -5,10 +5,10 @@ import numpy as np
 import redis
 import serial
 
-# from arduino_data_processing import parse_data, quaternions_to_vectors
 from constants import CHANNEL, ARDUINO_PORT, BAUD_RATE, PYTHON_SAMPLING_RATE, REDIS_PORT, \
-    PYTHON_SIMULATION_SAMPLING_RATE, QUATERNIONS_TIBIA
-from data_processing_v2 import parse_data, relative_quaternion
+    PYTHON_SIMULATION_SAMPLING_RATE, QUATERNIONS_TIBIA, POSITIONS
+from data_processing_v2 import parse_data_one_sensor
+from quat_acc_to_pos import OneSensorRecording
 
 redis_ok = False
 serial_ok = False
@@ -31,31 +31,33 @@ try:
 except serial.SerialException as e:
     print(f"Error opening serial port {ARDUINO_PORT}, proceeding with simulation mode")
 
+sent_counter = 0
 if serial_ok:
-    last_sent_time = time.time()
-    last_tibia_sent = np.asarray([1, 0, 0, 0])
-    last_femur_sent = np.asarray([1, 0, 0, 0])
     try:
+        is_first = True
         while True:
             try:
                 if ser.in_waiting > 0:
                     last_sent = 0
                     raw_data = ser.readline().decode('utf-8').strip()
-                    timestamp, quaternion_tibia, quaternion_femur = parse_data(raw_data)
-                    if quaternion_tibia is not None and quaternion_femur is not None:
-                        # forse sarebbe meglio registrare i dati qua? evitiamo lag e python sampling rate??
-                        # send data with sampling rate
-                        if redis_ok:
-                            now = time.time()
-                            if now > last_sent + PYTHON_SAMPLING_RATE:
-                                q_rel_tibia = relative_quaternion(last_tibia_sent, quaternion_tibia)
-                                q_rel_femur = relative_quaternion(last_femur_sent, quaternion_femur)
-                                # print(q_rel_tibia, q_rel_femur)
+                    timestamp, quaternion_sensor_1, accelerations_sensor_1 = parse_data_one_sensor(raw_data)
+                    timestamp = timestamp / 10000
+                    if quaternion_sensor_1 is not None and accelerations_sensor_1 is not None:
+                        if is_first:
+                            RecordingHandler = OneSensorRecording(initial_timestamp=timestamp)
+                            is_first = False
 
-                                r.publish(CHANNEL, json.dumps([timestamp, ] + list(q_rel_tibia) + list(q_rel_femur)))
-                                last_sent = now
-                                last_tibia_sent = quaternion_tibia
-                                last_femur_sent = quaternion_femur
+                        RecordingHandler.add_pose(timestamp, quaternion_sensor_1, accelerations_sensor_1)
+                        RecordingHandler.update()
+                        r.publish(CHANNEL, json.dumps({
+                            "timestamp": timestamp,
+                            "quaternion": quaternion_sensor_1,
+                            "position": RecordingHandler.positions[-1]}))
+
+                        sent_counter += 1
+                        if sent_counter > 10:
+                            print(f"Sent {sent_counter} quaternions")
+                            sent_counter = 0
             except serial.SerialException as e:
                 pass
 
@@ -74,7 +76,10 @@ else:
         femur_quaternion = QUATERNIONS_TIBIA[len(QUATERNIONS_TIBIA) - 1 - i % len(QUATERNIONS_TIBIA)]
 
         if redis_ok:
-            raw_data = json.dumps([0, ] + tibia_quaternion + femur_quaternion)
-            r.publish(CHANNEL, raw_data)
-            r.rpush("quaternion_list_raw", raw_data)
+            raw_data = {
+                "quaternion": [tibia_quaternion[1], tibia_quaternion[0], tibia_quaternion[2], tibia_quaternion[3]],
+                "position": POSITIONS[i % len(POSITIONS)],
+            }
+            raw_data_dumped = json.dumps(raw_data)
+            r.publish(CHANNEL, raw_data_dumped)
             time.sleep(PYTHON_SIMULATION_SAMPLING_RATE)
