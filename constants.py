@@ -2261,3 +2261,9 @@ RECORD_FOLDER = "recordings/"
 # esp32 (wifi)
 ESP_IP = "192.168.4.1"  # ESP32 IP Address
 ESP_PORT = 80
+
+# sensor handler
+FILTERS = {
+  "NONE": 0,
+  "DESPERATE": 1
+}
