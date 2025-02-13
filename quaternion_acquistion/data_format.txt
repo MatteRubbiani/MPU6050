@@ -1,0 +1,15 @@
+ONE SENSOR
+
+- g vector format:
+*-, gx, gy, gz  [x, y, z from the point of view of sensor]
+
+- data for movement format:
+#-, timestamp, q_w, q_x, q_y, q_z, a_x, a_y, a_z  [a is without gravity]
+
+TWO SENSORS
+
+- g vector format:
+**, gx(68), gy(68), gz(68), gx(69), gy(69), gz(69)   
+
+- data for movement format:
+##, timestamp, q_w(68), q_x(68), q_y(68), q_z(68), a_x(68), a_y(68), a_z(68), q_w(69), q_x(69), q_y(69), q_z(69), a_x(69), a_y(69), a_z(69)  [a is without gravity]

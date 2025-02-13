@@ -1,16 +1,11 @@
-#include "Wire.h"
-#include "I2Cdev.h"
-#include "MPU6050_6Axis_MotionApps612.h"
-
 /**
  * # Wiring
- * | MPU6050 | Arduino   |
- * | ------- | --------- |
- * | GND     | GND       |
- * | VCC     | 3V3       |
- * | SCL     | SCL       |
- * | SDA     | SDA       |
- * | ADD     | see below |
+ * | MPU6050 | MPU6050 |  ESP32  |
+ * | ------- | ------- | ------- |
+ * | GND     | GND     | GND     |
+ * | VCC     | AD0     | 3V3     |
+ * | SCL     | SCL     | G22     |
+ * | SDA     | SDA     | G21     |
  * 
  * ## ADDR pin 
  * 
@@ -18,11 +13,75 @@
  * ADDR high = 0x69
  */
 
-int device_number = 0;
+#include <WiFi.h>
+#include "Wire.h"
+#include "I2Cdev.h"
+#include "MPU6050_6Axis_MotionApps612.h"
 
+//VARIABLE INITIALIZATION
+// Wi-Fi credentials
+const char *ssid = "ESP32_WiFi";
+const char *password = "12345678";
+
+// Create a server on port 80
+WiFiServer server(80);
+
+WiFiClient client;
+
+// initialize the variable to save the number of devices
+int device_number;
+
+// initialize the two MPUs with their I2C ID
+MPU6050 mpu68(0x68);
+MPU6050 mpu69(0x69);
+
+uint8_t error_code = 0U;  // return status after each device operation (0 = success, !0 = error)
+
+
+// PROTOTYPES
+void resetI2C();
+int device_count();
+void WiFi_initialization(const char *_ssid, const char *_password);
+void device_calibration(int _device_number);
+void get_quaternions(int _device_number, WiFiClient _client);
+
+
+// MAIN
+void setup() {
+  Serial.begin(115200);
+  Wire.begin();
+  Wire.setClock(400000);
+
+  WiFi_initialization(ssid, password);
+
+  int device_number = device_count();
+  Serial.print(device_number);
+  device_calibration(device_number);
+}
+
+// orientation/motion vars
+Quaternion q68;  // [w, x, y, z]         quaternion container
+Quaternion q69;  // [w, x, y, z]         quaternion container
+
+
+void loop() {
+  WiFiClient client = server.available();
+  if (!client) {
+    Serial.println("Client not found");
+    delay(1000);
+    return;
+  }
+  while (client.connected()) {
+    get_quaternions(device_number, client);
+    delay(45);
+  }
+}
+
+
+// FUNCTIONS
 void resetI2C() {
-  Wire.end();  // Termina la comunicazione I²C
-  delay(100);  // Aspetta un momento
+  Wire.end();    // Termina la comunicazione I²C
+  delay(100);    // Aspetta un momento
   Wire.begin();  // Riavvia il bus I²C;
 }
 
@@ -40,193 +99,173 @@ int device_count() {
   return device_number;
 }
 
-// initialize the two MPUs with their I2C ID
-MPU6050 mpu68(0x68);
-MPU6050 mpu69(0x69);
+void WiFi_initialization(const char *_ssid, const char *_password) {
+  // Initialize Wi-Fi as an access point
+  WiFi.softAP(_ssid, _password);
+  Serial.println("Wi-Fi access point started");
+  Serial.println("IP Address: " + WiFi.softAPIP().toString());
 
-uint8_t error_code = 0U;      // return status after each device operation (0 = success, !0 = error)
+  // Start the server
+  server.begin();
+}
 
-void setup() {
-  int device_number = device_count();
-  Wire.begin();
-  Wire.setClock(400000);
+void device_calibration(int _device_number) {
+  // device managing
+  if (_device_number == 1) {
+    // initialize device
+    mpu68.initialize();
+    error_code = mpu68.dmpInitialize();
 
-  Serial.begin(115200);
-  Serial.println("connection esablished");
-  
-  if (device_number == 1) {
-  // initialize device
-  mpu68.initialize();
-  error_code = mpu68.dmpInitialize();
-  
-  if (error_code == 1U) {
-    Serial.print("{\"key\": \"/log\", \"value\": \"device 0x68 initialization failed: initial memory load failed.\", \"level\": \"ERROR\"}\n");
-    while (1) {}
-  }
-  if (error_code == 2U) {
-    Serial.print("{\"key\": \"/log\", \"value\": \"device 0x68 initialization failed: DMP configuration updates failed.\", \"level\": \"ERROR\"}\n");
-    while (1) {}
-  }
-  
-  // verify connection
-  if (!mpu68.testConnection()) {
-    Serial.print("{\"key\": \"/log\", \"value\": \"device 0x68 connection failed.\", \"level\": \"ERROR\"}\n"); 
-  }
+    if (error_code == 1U) {
+      Serial.print("{\"key\": \"/log\", \"value\": \"device 0x68 initialization failed: initial memory load failed.\", \"level\": \"ERROR\"}\n");
+      while (1) {}
+    }
+    if (error_code == 2U) {
+      Serial.print("{\"key\": \"/log\", \"value\": \"device 0x68 initialization failed: DMP configuration updates failed.\", \"level\": \"ERROR\"}\n");
+      while (1) {}
+    }
 
-  // supply your own gyro offsets here, scaled for min sensitivity
-  mpu68.setXGyroOffset(0);
-  mpu68.setYGyroOffset(0);
-  mpu68.setZGyroOffset(0);
-  mpu68.setXAccelOffset(0);
-  mpu68.setYAccelOffset(0);
-  mpu68.setZAccelOffset(0);
-   
-  // Calibration Time: generate offsets and calibrate our MPU6050
-  mpu68.CalibrateAccel(20);
-  mpu68.CalibrateGyro(20);
+    // verify connection
+    if (!mpu68.testConnection()) {
+      Serial.print("{\"key\": \"/log\", \"value\": \"device 0x68 connection failed.\", \"level\": \"ERROR\"}\n");
+    }
 
-  // calibration procedure will dump garbage on serial, we use a newline to fence it
-  Serial.print("\n");
-  
-  // turn on the DMP, now that it's ready
-  mpu68.setDMPEnabled(true);
-  //mpu69.setDMPEnabled(true);
+    // supply your own gyro offsets here, scaled for min sensitivity
+    mpu68.setXGyroOffset(0);
+    mpu68.setYGyroOffset(0);
+    mpu68.setZGyroOffset(0);
+    mpu68.setXAccelOffset(0);
+    mpu68.setYAccelOffset(0);
+    mpu68.setZAccelOffset(0);
+
+    // Calibration Time: generate offsets and calibrate our MPU6050
+    mpu68.CalibrateAccel(20);
+    mpu68.CalibrateGyro(20);
+
+    // calibration procedure will dump garbage on serial, we use a newline to fence it
+    Serial.print("\n");
+
+    // turn on the DMP, now that it's ready
+    mpu68.setDMPEnabled(true);
+    //mpu69.setDMPEnabled(true);
   }
 
-  else {
+  else if (_device_number == 2) {
     // initialize device mpu68
-  mpu68.initialize();
-  error_code = mpu68.dmpInitialize();
-  
-  if (error_code == 1U) {
-    Serial.print("{\"key\": \"/log\", \"value\": \"device 0x68 initialization failed: initial memory load failed.\", \"level\": \"ERROR\"}\n");
-    while (1) {}
-  }
-  if (error_code == 2U) {
-    Serial.print("{\"key\": \"/log\", \"value\": \"device 0x68 initialization failed: DMP configuration updates failed.\", \"level\": \"ERROR\"}\n");
-    while (1) {}
-  }
-  // initialize device mpu69
-  mpu69.initialize();
-  error_code = mpu69.dmpInitialize();
+    mpu68.initialize();
+    error_code = mpu68.dmpInitialize();
 
-  if (error_code == 1U) {
-    Serial.print("{\"key\": \"/log\", \"value\": \"device 0x68 initialization failed: initial memory load failed.\", \"level\": \"ERROR\"}\n");
-    while (1) {}
-  }
-  if (error_code == 2U) {
-    Serial.print("{\"key\": \"/log\", \"value\": \"device 0x68 initialization failed: DMP configuration updates failed.\", \"level\": \"ERROR\"}\n");
-    while (1) {}
-  }
+    if (error_code == 1U) {
+      Serial.print("{\"key\": \"/log\", \"value\": \"device 0x68 initialization failed: initial memory load failed.\", \"level\": \"ERROR\"}\n");
+      while (1) {}
+    }
+    if (error_code == 2U) {
+      Serial.print("{\"key\": \"/log\", \"value\": \"device 0x68 initialization failed: DMP configuration updates failed.\", \"level\": \"ERROR\"}\n");
+      while (1) {}
+    }
+    // initialize device mpu69
+    mpu69.initialize();
+    error_code = mpu69.dmpInitialize();
 
-  // verify connection
-  if (!mpu68.testConnection()) {
-    Serial.print("{\"key\": \"/log\", \"value\": \"device 0x68 connection failed.\", \"level\": \"ERROR\"}\n"); 
-  }
+    if (error_code == 1U) {
+      Serial.print("{\"key\": \"/log\", \"value\": \"device 0x68 initialization failed: initial memory load failed.\", \"level\": \"ERROR\"}\n");
+      while (1) {}
+    }
+    if (error_code == 2U) {
+      Serial.print("{\"key\": \"/log\", \"value\": \"device 0x68 initialization failed: DMP configuration updates failed.\", \"level\": \"ERROR\"}\n");
+      while (1) {}
+    }
 
-  if (!mpu69.testConnection()) {
-    Serial.print("{\"key\": \"/log\", \"value\": \"device 0x69 connection failed.\", \"level\": \"ERROR\"}\n");
-  }
+    // verify connection
+    if (!mpu68.testConnection()) {
+      Serial.print("{\"key\": \"/log\", \"value\": \"device 0x68 connection failed.\", \"level\": \"ERROR\"}\n");
+    }
 
-  // supply your own gyro offsets here, scaled for min sensitivity
-  mpu68.setXGyroOffset(0);
-  mpu68.setYGyroOffset(0);
-  mpu68.setZGyroOffset(0);
-  mpu68.setXAccelOffset(0);
-  mpu68.setYAccelOffset(0);
-  mpu68.setZAccelOffset(0);
+    if (!mpu69.testConnection()) {
+      Serial.print("{\"key\": \"/log\", \"value\": \"device 0x69 connection failed.\", \"level\": \"ERROR\"}\n");
+    }
 
-  mpu69.setXGyroOffset(0);
-  mpu69.setYGyroOffset(0);
-  mpu69.setZGyroOffset(0);
-  mpu69.setXAccelOffset(0);
-  mpu69.setYAccelOffset(0);
-  mpu69.setZAccelOffset(0);
+    // supply your own gyro offsets here, scaled for min sensitivity
+    mpu68.setXGyroOffset(0);
+    mpu68.setYGyroOffset(0);
+    mpu68.setZGyroOffset(0);
+    mpu68.setXAccelOffset(0);
+    mpu68.setYAccelOffset(0);
+    mpu68.setZAccelOffset(0);
 
-  // Calibration Time: generate offsets and calibrate our MPU6050
-  mpu68.CalibrateAccel(20);
-  mpu68.CalibrateGyro(20);
-  
-  mpu69.CalibrateAccel(20);
-  mpu69.CalibrateGyro(20);
+    mpu69.setXGyroOffset(0);
+    mpu69.setYGyroOffset(0);
+    mpu69.setZGyroOffset(0);
+    mpu69.setXAccelOffset(0);
+    mpu69.setYAccelOffset(0);
+    mpu69.setZAccelOffset(0);
 
-  // calibration procedure will dump garbage on serial, we use a newline to fence it
-  Serial.print("\n");
-  
-  // turn on the DMP, now that it's ready
-  mpu68.setDMPEnabled(true);
-  mpu69.setDMPEnabled(true);
+    // Calibration Time: generate offsets and calibrate our MPU6050
+    mpu68.CalibrateAccel(20);
+    mpu68.CalibrateGyro(20);
+
+    mpu69.CalibrateAccel(20);
+    mpu69.CalibrateGyro(20);
+
+    // calibration procedure will dump garbage on serial, we use a newline to fence it
+    Serial.print("\n");
+
+    // turn on the DMP, now that it's ready
+    mpu68.setDMPEnabled(true);
+    mpu69.setDMPEnabled(true);
   }
 }
 
+void get_quaternions(int _device_number, WiFiClient _client) {
+  if (_device_number == 1) {
+    // test the connection before trying to get the data
+    while (!mpu68.testConnection()) {
+      resetI2C();
+    }
 
-  // orientation/motion vars
-  Quaternion q68;           // [w, x, y, z]         quaternion container
-  Quaternion q69;           // [w, x, y, z]         quaternion container
- 
-void loop() {
-  Serial.println("spoingere");
-  if (device_number == 1) { 
-  // test the connection before trying to get the data
-  while (!mpu68.testConnection()) {
-    resetI2C();
-  }
-    
-  // Get the Latest packet 
-  uint8_t fifo_buffer68[64]; // FIFO storage buffer
-  if (!mpu68.dmpGetCurrentFIFOPacket(fifo_buffer68)) {
-    return;
-  } 
-  Quaternion q68;
-  mpu68.dmpGetQuaternion(&q68, fifo_buffer68);
-  
-  // Get the timestamp
-  unsigned long currentTime = millis();
-  
-  // // Print the timestamp and quaternions
-  Serial.print(currentTime);Serial.print(", ");
-  Serial.print(1.00);Serial.print(", ");
-  Serial.print(0.00);Serial.print(", ");
-  Serial.print(0.00);Serial.print(", ");
-  Serial.print(0.00);Serial.print(", ");
-  Serial.print(q68.w);Serial.print(", ");
-  Serial.print(q68.x);Serial.print(", ");
-  Serial.print(q68.y);Serial.print(", ");
-  Serial.print(-q68.z);Serial.print("\n");
+    // Get the Latest packet
+    uint8_t fifo_buffer68[64];  // FIFO storage buffer
+    if (!mpu68.dmpGetCurrentFIFOPacket(fifo_buffer68)) {
+      return;
+    }
+    Quaternion q68;
+    mpu68.dmpGetQuaternion(&q68, fifo_buffer68);
+
+    // Get the timestamp
+    unsigned long currentTime = millis();
+
+    // // Print the timestamp and quaternions
+    String dataToSend = String(currentTime) + ", 1.00, 0.00, 0.00, 0.00" + String(q68.w, 2) + ", " + String(q68.x, 2) + ", " + String(q68.y, 2) + ", " + String(q68.z, 2) + "\n";
+    Serial.print(dataToSend);
+    _client.print(dataToSend);
   }
 
-  else {  
-  // test the connection before trying to get the data
-  while (!mpu68.testConnection() or !mpu69.testConnection()) {
-    resetI2C();
-  }
+  else {
+    // test the connection before trying to get the data
+    while (!mpu68.testConnection() or !mpu69.testConnection()) {
+      resetI2C();
+    }
 
-  // Get the Latest packet 
-  uint8_t fifo_buffer68[64]; // FIFO storage buffer
-  if (!mpu68.dmpGetCurrentFIFOPacket(fifo_buffer68)) {
-    return;
-  }
+    // Get the Latest packet
+    uint8_t fifo_buffer68[64];  // FIFO storage buffer
+    if (!mpu68.dmpGetCurrentFIFOPacket(fifo_buffer68)) {
+      return;
+    }
 
-  uint8_t fifo_buffer69[64]; // FIFO storage buffer
-  if (!mpu69.dmpGetCurrentFIFOPacket(fifo_buffer69)) {
-    return;
-  }  
+    uint8_t fifo_buffer69[64];  // FIFO storage buffer
+    if (!mpu69.dmpGetCurrentFIFOPacket(fifo_buffer69)) {
+      return;
+    }
 
-  mpu68.dmpGetQuaternion(&q68, fifo_buffer68);
-  mpu69.dmpGetQuaternion(&q69, fifo_buffer69);
+    mpu68.dmpGetQuaternion(&q68, fifo_buffer68);
+    mpu69.dmpGetQuaternion(&q69, fifo_buffer69);
 
-  // Get the timestamp
-  unsigned long currentTime = millis();
+    // Get the timestamp
+    unsigned long currentTime = millis();
 
-  // Print the timestamp and quaternions
-  Serial.print(currentTime);Serial.print(", ");
-  Serial.print(q69.w);Serial.print(", ");
-  Serial.print(q69.x);Serial.print(", ");
-  Serial.print(q69.y);Serial.print(", ");
-  Serial.print(q69.z);Serial.print(", ");
-  Serial.print(q68.w);Serial.print(", ");
-  Serial.print(q68.x);Serial.print(", ");
-  Serial.print(q68.y);Serial.print(", ");
-  Serial.print(q68.z);Serial.print("\n");
+    // Print the timestamp and quaternions
+    String dataToSend = String(currentTime) + ", " + String(q68.w, 2) + ", " + String(q68.x, 2) + ", " + String(q68.y, 2) + ", " + String(q68.z, 2) + ", " + String(q69.w, 2) + ", " + String(q69.x, 2) + ", " + String(q69.y, 2) + ", " + String(q69.z, 2) + "\n";
+    Serial.print(dataToSend);
+    _client.print(dataToSend);
   }
 }
