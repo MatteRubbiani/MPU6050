@@ -32,8 +32,10 @@ int16_t _gx68, _gy68, _gz68;
 int16_t _gx69, _gy69, _gz69;
 
 // Orientation/motion vars for successive motion elaboration
-Quaternion q68;  // [w, x, y, z]         
-Quaternion q69;  // [w, x, y, z]         
+Quaternion q68;  // [w, x, y, z]
+Quaternion last_q68;         
+Quaternion q69;  // [w, x, y, z]    
+Quaternion last_q69;     
 VectorInt16 a68; // [x, y, z]            
 VectorInt16 a69; // [x, y, z]            
 VectorInt16 aReal68; // [x, y, z] 
@@ -44,6 +46,8 @@ VectorFloat gravity69; // [x, y, z]
 // Other variables
 int device_number;
 int loop_number;
+int const_values_number;
+String last_dataToSend;
 
 // PROTOTYPES
 void resetI2C();
@@ -52,6 +56,7 @@ void set_MPU6050(int _device_number);
 void device_calibration(int _device_number);
 void get_initial_acceleration(int _device_number);
 void get_quaternion_and_acceleration(int _device_number);
+bool are_quaternions_equal(Quaternion q1, Quaternion q2, float epsilon = 0.01);
 
 // MAIN
 void setup() {
@@ -75,7 +80,6 @@ void setup() {
 void loop() {
   get_quaternion_and_acceleration(device_number);
   }
-  
 
 // FUNCTIONS
 void resetI2C() {
@@ -330,6 +334,21 @@ void get_quaternion_and_acceleration(int _device_number) {
                         String(az) + "\n ";
 
     Serial.print(dataToSend);
+    
+    if (are_quaternions_equal(q68, last_q68)) {
+      const_values_number++;
+    }
+
+    else {
+      last_q68 = q68;
+      const_values_number = 0;
+    }
+
+    if (const_values_number > 19) {
+      get_initial_acceleration(_device_number);
+      const_values_number = 0;
+    }
+
     delay(50);
   }
 
@@ -391,8 +410,30 @@ void get_quaternion_and_acceleration(int _device_number) {
                         String(az_69) + "\n ";
 
     Serial.print(dataToSend);
+
+    if (are_quaternions_equal(q68, last_q68) && are_quaternions_equal(q69, last_q69)) {
+      const_values_number++;
+    }
+
+    else {
+      last_q68 = q68;
+      last_q69 = q69;
+      const_values_number = 0;
+    }
+
+    if (const_values_number > 19) {
+      get_initial_acceleration(_device_number);
+      const_values_number = 0;
+    }
+
     delay(50);
   }
 }
 
+bool are_quaternions_equal(Quaternion q1, Quaternion q2, float epsilon = 0.01) {
+    return (fabs(q1.w - q2.w) < epsilon &&
+            fabs(q1.x - q2.x) < epsilon &&
+            fabs(q1.y - q2.y) < epsilon &&
+            fabs(q1.z - q2.z) < epsilon);
+}
 
