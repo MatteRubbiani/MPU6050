@@ -27,8 +27,8 @@ class Sensor:
         self.g_recordings = []
 
 
-    def add_gravity_recording(self, gx, gy, gz):
-        self.g_recordings.append(np.array([gx, gy, gz]))
+    def add_gravity_recording(self, g):
+        self.g_recordings.append(np.array(g))
 
     def calculate_and_set_starting_quaternion(self):
         mean_g = np.mean(self.g_recordings, axis=0)

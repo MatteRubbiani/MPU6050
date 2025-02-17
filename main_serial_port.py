@@ -87,9 +87,9 @@ else: # questo è gia con due sensori, quando paul è pronto prendi questo codic
         print(f"SIMULATED RECORDING: {i}")
         type_of_data, data_sensor_1, data_sensor_2 = parse_data_two_sensors(i)
         if type_of_data == "*":
-            sensor_1.add_gravity_recording(data_sensor_1[0], data_sensor_1[1], data_sensor_1[2])
+            sensor_1.add_gravity_recording(data_sensor_1)
             sensor_1.calculate_and_set_starting_quaternion()
-            sensor_2.add_gravity_recording(data_sensor_2[0], data_sensor_2[1], data_sensor_2[2])
+            sensor_2.add_gravity_recording(data_sensor_2)
             sensor_2.calculate_and_set_starting_quaternion()
 
             data_to_send_sensor_1 = sensor_1.get_pose(data_type="*")
