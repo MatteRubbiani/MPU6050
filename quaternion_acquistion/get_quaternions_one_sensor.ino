@@ -49,15 +49,6 @@ int loop_number;
 int const_values_number;
 String last_dataToSend;
 
-// PROTOTYPES
-void resetI2C();
-int device_count();
-void set_MPU6050(int _device_number);
-void device_calibration(int _device_number);
-void get_initial_acceleration(int _device_number);
-void get_quaternion_and_acceleration(int _device_number);
-bool are_quaternions_equal(Quaternion q1, Quaternion q2, float epsilon = 0.01);
-
 // MAIN
 void setup() {
   Serial.begin(115200);
@@ -297,6 +288,13 @@ void device_calibration(int _device_number) {
   }
 }
 
+bool are_quaternions_equal(Quaternion q1, Quaternion q2, float epsilon = 0.01) {
+    return (fabs(q1.w - q2.w) < epsilon &&
+            fabs(q1.x - q2.x) < epsilon &&
+            fabs(q1.y - q2.y) < epsilon &&
+            fabs(q1.z - q2.z) < epsilon);
+}
+
 void get_quaternion_and_acceleration(int _device_number) {
   if (_device_number == 1) {
     // test the connection before trying to get the data
@@ -429,11 +427,3 @@ void get_quaternion_and_acceleration(int _device_number) {
     delay(50);
   }
 }
-
-bool are_quaternions_equal(Quaternion q1, Quaternion q2, float epsilon = 0.01) {
-    return (fabs(q1.w - q2.w) < epsilon &&
-            fabs(q1.x - q2.x) < epsilon &&
-            fabs(q1.y - q2.y) < epsilon &&
-            fabs(q1.z - q2.z) < epsilon);
-}
-
