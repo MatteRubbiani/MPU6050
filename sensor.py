@@ -57,14 +57,14 @@ class Sensor:
             self.__calculate_and_set_real_world_velocity()
             self.__calculate_and_set_real_world_position()
 
-    def get_pose(self, data_type="#", get_acceleration=False, dumped=False):
+    def get_pose(self, data_type="#", get_acceleration=False, dumped=False, fixed_position = True):
         pose_undumped = {
             "data_type": data_type
         }
         if data_type == "#":
             pose_undumped["timestamp"] = self.timestamps[-1]
             pose_undumped["quaternion"] = self.quaternions[-1].tolist()
-            pose_undumped["position"] = self.real_world_positions[-1].tolist()
+            pose_undumped["position"] = [0, 0, 0] if fixed_position else self.real_world_positions[-1].tolist()
             if get_acceleration:
                 pose_undumped["acceleration"] = self.real_world_accelerations[-1].tolist()
         elif data_type == "*":

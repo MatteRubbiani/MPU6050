@@ -1,10 +1,10 @@
 import logging
 import time
-
 import redis
 
 from constants import REDIS_PORT
 from serial_reader import SerialReader
+from simulation.simulate_main_v3 import simulate_main
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -28,12 +28,11 @@ r = get_r()
 
 mode = input("serial mode? (Y/n): ")
 if mode == "n":
-    # simulation
-    pass
+    simulate_main(r)
 else:
+    # todo: controllare g mandato ogni tanto che non resetta i quaternioni e fa casino
     reader = SerialReader(baudrate=115200, r=r)
     reader.start()
-
     try:
         while True:
             time.sleep(1)  # Keep main thread alive

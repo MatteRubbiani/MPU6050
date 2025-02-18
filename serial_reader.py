@@ -12,7 +12,6 @@ from constants import CHANNEL
 from colorama import Fore, Style
 
 from data_processing_v3 import parse_data_v3
-from main_serial_port import data_to_send
 from sensor import Sensor
 
 # Configure logging
@@ -87,30 +86,41 @@ class SerialReader:
             time.sleep(0.05)  # Adjust polling rate as needed
 
     def process_data(self, data):
-        """Process received data (can be customized)."""
-        processed_data = parse_data_v3(data)
-        data_type = processed_data["data_type"]
+        logging.info(f"Processing data: {data}")
+        parsed_data = parse_data_v3(data)
+        data_type = parsed_data["data_type"]
+        data_to_send_sensor_1 = None
+        data_to_send_sensor_2 = None
         if data_type == "*-":
-            self.sensor_1.add_gravity_recording(processed_data["g"])
+            self.sensor_1.add_gravity_recording(parsed_data["g"])
             self.sensor_1.calculate_and_set_starting_quaternion()
+            data_to_send_sensor_1 = self.sensor_1.get_pose("*")
         elif data_type == "**":
-            self.sensor_1.add_gravity_recording(processed_data["g_68"])
+            self.sensor_1.add_gravity_recording(parsed_data["g_68"])
             self.sensor_1.calculate_and_set_starting_quaternion()
-            self.sensor_2.add_gravity_recording(processed_data["g_69"])
+            self.sensor_2.add_gravity_recording(parsed_data["g_69"])
             self.sensor_2.calculate_and_set_starting_quaternion()
+            data_to_send_sensor_1 = self.sensor_1.get_pose("*")
+            data_to_send_sensor_2 = self.sensor_2.get_pose("*")
         elif data_type == "#-":
-            # todo: finire
-            self.sensor_1.add_recording()
+            self.sensor_1.add_recording(parsed_data["timestamp"], parsed_data["quaternion"], parsed_data["acceleration"])
+            self.sensor_1.calculate_and_set_state()
+            data_to_send_sensor_1 = self.sensor_1.get_pose("#")
         elif data_type == "##":
-            pass
+            self.sensor_1.add_recording(parsed_data["timestamp"], parsed_data["quaternion_68"], parsed_data["acceleration_68"])
+            self.sensor_1.calculate_and_set_state()
+            self.sensor_2.add_recording(parsed_data["timestamp"], parsed_data["quaternion_69"], parsed_data["acceleration_69"])
+            self.sensor_2.calculate_and_set_state()
+            data_to_send_sensor_1 = self.sensor_1.get_pose("#")
+            data_to_send_sensor_2 = self.sensor_2.get_pose("#")
         else:
             logging.error(f"Unknown data type: {data_type}")
+
         data_to_publish = {
             "sensor_1" : data_to_send_sensor_1,
-            "sensor_2" : None  # data_to_send_sensor_2,
+            "sensor_2" : data_to_send_sensor_2,
         }
-
-        self.publish_data_to_redis(processed_data)
+        self.publish_data_to_redis(data_to_publish)
 
     def publish_data_to_redis(self, data):
         """Publish received data to redis."""
