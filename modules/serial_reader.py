@@ -17,7 +17,7 @@ from sensor import Sensor
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
-
+#todo: implementare DataHandler anche qua
 class SerialReader:
     def __init__(self, port="/dev/tty.usbserial-0001", baudrate=115200, timeout=1, reconnect=True, r:redis.Redis=None):
         self.port = port
@@ -33,10 +33,9 @@ class SerialReader:
 
     def find_device(self):
         """Automatically detects an available serial device if no port is specified."""
-        # NON LO USO IN MODALITà AUTOMATICA MA LO LASCIO
         if self.port:
             return self.port
-
+        # NON LO USO IN MODALITà AUTOMATICA MA LO LASCIO
         ports = serial.tools.list_ports.comports()
         if not ports:
             logging.warning("No serial devices found.")

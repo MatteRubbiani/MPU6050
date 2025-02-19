@@ -2258,12 +2258,12 @@ SOCKET_PORT = 8765
 BUFFER_SIZE = 100
 RECORD_FOLDER = "recordings/"
 
-# esp32 (wifi)
-ESP_IP = "192.168.4.1"  # ESP32 IP Address
-ESP_PORT = 80
-
 # sensor handler
 FILTERS = {
   "NONE": 0,
   "DESPERATE": 1
 }
+
+# BLE configuration
+BLE_NAME = "Long name works now"
+CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8"

@@ -6,11 +6,10 @@ import numpy as np
 
 from constants import CHANNEL, PYTHON_SIMULATION_SAMPLING_RATE
 from data_processing_v3 import parse_data_v3
-from sensor import Sensor
+from modules.sensor import Sensor
 
 
 def simulate_main(r):
-
     time.sleep(1)
     sensor_1 = Sensor(filter_type="NONE", initial_position=np.array([0, 0, 0]))
     sensor_2 = Sensor(filter_type="NONE", initial_position=np.array([0, 3, 0]))

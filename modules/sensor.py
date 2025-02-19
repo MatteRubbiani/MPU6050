@@ -26,7 +26,6 @@ class Sensor:
         self.starting_g = np.array([0, 1, 0])
         self.g_recordings = []
 
-
     def add_gravity_recording(self, g):
         self.g_recordings.append(np.array(g))
 
@@ -40,7 +39,7 @@ class Sensor:
         self.quaternions.append(np.array(quaternion))
         self.accelerations.append(np.array(acceleration))
         self.__calculate_and_set_real_world_acceleration(quaternion, acceleration)
-        #todo: attenzione, il quaternione che applico all'accelerazione NON tiene conto del quaternione iniale. Le posizioni che scono sono quindi relative agli assi del sensore. Prima di applicarle vanno ruotate del quaternione inziiale!!!
+        #todo: attenzione, il quaternione che applico all'accelerazione NON tiene conto del quaternione iniale. Le posizioni che escono sono quindi relative agli assi del sensore. Prima di applicarle vanno ruotate del quaternione inziiale!!!
 
         self.records_counter += 1
 
@@ -57,13 +56,14 @@ class Sensor:
             self.__calculate_and_set_real_world_velocity()
             self.__calculate_and_set_real_world_position()
 
-    def get_pose(self, data_type="#", get_acceleration=False, dumped=False, fixed_position = True):
+    def get_pose(self, data_type="#", get_acceleration=False, dumped=False, fixed_position = True, ):
         pose_undumped = {
             "data_type": data_type
         }
         if data_type == "#":
             pose_undumped["timestamp"] = self.timestamps[-1]
             pose_undumped["quaternion"] = self.quaternions[-1].tolist()
+            # todo: calculate total quaternion (facciamo sparire initial quaternion da three.js)
             pose_undumped["position"] = [0, 0, 0] if fixed_position else self.real_world_positions[-1].tolist()
             if get_acceleration:
                 pose_undumped["acceleration"] = self.real_world_accelerations[-1].tolist()
@@ -93,7 +93,6 @@ class Sensor:
         else:
             pass
 
-
     def __calculate_and_set_real_world_position(self):
         last_r_w_velocity = self.real_world_velocities[-1]
         last_r_w_position = self.real_world_positions[-1]
@@ -102,126 +101,30 @@ class Sensor:
 
 
 
-def quaternion_between_vectors(v1, v2):
-    if np.linalg.norm(v1) != 0:
-        v1 = v1 / np.linalg.norm(v1)  # Normalize v1
-    if  np.linalg.norm(v2) != 0:
-        v2 = v2 / np.linalg.norm(v2)  # Normalize v2
-
-    dot_product = np.dot(v1, v2)  # Compute dot product
-    if np.isclose(dot_product, 1.0):
-        return np.array([1, 0, 0, 0])  # No rotation needed (identity quaternion)
-    if np.isclose(dot_product, -1.0):
-        return np.array([0, 1, 0, 0])  # 180-degree rotation (arbitrary axis)
-
-    axis = np.cross(v1, v2)  # Compute rotation axis
-    axis = axis / np.linalg.norm(axis)  # Normalize axis
-    angle = np.arccos(dot_product)  # Compute angle in radians
-
-    q_w = np.cos(angle / 2)
-    q_xyz = axis * np.sin(angle / 2)
-
-    return np.concatenate((q_xyz, [q_w]))  # Quaternion (w, x, y, z)
-
-
-def euler_to_quaternion(theta_x, theta_y, theta_z):
-    """
-    Converte angoli di Eulero (theta_x, theta_y, theta_z) in un quaternione (w, x, y, z).
-
-    Gli angoli devono essere forniti in **radiani**.
-    L'ordine di rotazione è **X (roll) → Y (pitch) → Z (yaw)**.
-    """
-    cx = np.cos(theta_x / 2)
-    sx = np.sin(theta_x / 2)
-    cy = np.cos(theta_y / 2)
-    sy = np.sin(theta_y / 2)
-    cz = np.cos(theta_z / 2)
-    sz = np.sin(theta_z / 2)
-
-    w = cz * cy * cx + sz * sy * sx
-    x = sx * cy * cz - cx * sy * sz
-    y = cx * sy * cz + sx * cy * sz
-    z = cx * cy * sz - sx * sy * cz
-
-    return (x, y, z, w)
-
-
-def quaternions_from_recorded_g(recorded_g): # assumes g alligned with y axis as basis
-    normalized_recorded_g = recorded_g / np.linalg.norm(recorded_g)
-    ax = normalized_recorded_g[0]
-    ay = normalized_recorded_g[1]
-    az = normalized_recorded_g[2]
-
-
-    if abs(ay) < 0.3 and abs(az) < 0.3: # indeterminato, assumiamo = 0
-        theta_x = 0
-    else:
-        theta_x = np.atan(- az / ay)
-
-    if ay < 0:
-        theta_x = theta_x + np.pi
-
-
-    if abs(ax) < 0.3 and abs(ay) < 0.3: # indeterminato, assumiamo = 0
-        theta_z = 0
-    else:
-        theta_z = np.atan(ax / ay)
-
-    if ay < 0:
-        theta_z = theta_z + np.pi # se sono nel 23 quadrante
-
-    print(theta_x, theta_z)
-    quat = euler_to_quaternion(theta_x, 0, theta_z)
-    quat = np.array(quat)
-    quat = quat / np.linalg.norm(quat)
-    return quat
-
-
-def axis_angle_to_quaternion(axis, theta):
-    """Convert an axis-angle representation to a quaternion.
-
-    Parameters:
-    axis (tuple): A 3-element tuple representing the unit axis (x, y, z).
-    theta (float): Rotation angle in radians.
-
-    Returns:
-    tuple: A 4-element tuple representing the quaternion (w, x, y, z).
-    """
-    x, y, z = axis
-    half_theta = theta / 2
-    w = np.cos(half_theta)
-    sin_half_theta = np.sin(half_theta)
-
-    return np.array((x * sin_half_theta, y * sin_half_theta, z * sin_half_theta, w))
-
-
 def quaternion_from_recorded_g_giac(recorded_g):
-    normalized_recorded_g = recorded_g / np.linalg.norm(recorded_g)
-    a = normalized_recorded_g[0]
-    b = normalized_recorded_g[1]
-    c = normalized_recorded_g[2]
-
-    cos_theta = b
-    sin_theta = - math.sqrt(a * a + c * c)
-
-    theta = math.atan2(sin_theta, cos_theta)
-    axis = (c, 0, -a)
-    axis = axis / np.linalg.norm(axis)
-
-    # if recorded_g = 0, -1, 0 --> undefined axis => set it to (1, 0, 0)
-    if np.linalg.norm(axis) == 0:
+    # if g = (0, 1, 0) --> axis undefined
+    if np.array_equal(recorded_g, np.array([0, 1, 0])):
+        theta = 0
         axis = np.array([1, 0, 0])
-    # aggiungere anche la condizione 0, 1, 0 -> ora da axis = Nan, Nan,Nan
-    print("theta: ", theta, "axis: ", axis)
+    # if g = (0, -1, 0) --> axis undefined
+    elif np.array_equal(recorded_g, np.array([0, -1, 0])):
+        theta = np.pi
+        axis = np.array([1, 0, 0])
+    else:
+        normalized_recorded_g = recorded_g / np.linalg.norm(recorded_g)
+        a = normalized_recorded_g[0]
+        b = normalized_recorded_g[1]
+        c = normalized_recorded_g[2]
 
-    """quat = axis_angle_to_quaternion(axis, theta)
-    print("theta: ", theta, "axis: ", axis)
-    return quat"""
+        cos_theta = b
+        sin_theta = - math.sqrt(a * a + c * c)
+
+        theta = math.atan2(sin_theta, cos_theta)
+        axis = (c, 0, -a)
+        axis = axis / np.linalg.norm(axis)
+
     return R.from_rotvec(theta * np.array(axis)).as_quat()
 
 
-
-
-
 if __name__ == "__main__":
-    print(quaternion_from_recorded_g_giac(np.array([0, 0, 1])))
+    print(quaternion_from_recorded_g_giac(np.array([-1, 0, 0])))

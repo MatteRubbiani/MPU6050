@@ -3,7 +3,7 @@ import time
 import redis
 
 from constants import REDIS_PORT
-from serial_reader import SerialReader
+from modules.serial_reader import SerialReader
 from simulation.simulate_main_v3 import simulate_main
 
 # Configure logging

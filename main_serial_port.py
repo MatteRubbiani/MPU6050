@@ -7,7 +7,7 @@ import serial
 
 from constants import CHANNEL, ARDUINO_PORT, BAUD_RATE, REDIS_PORT,PYTHON_SIMULATION_SAMPLING_RATE
 from data_processing_v2 import parse_data_one_sensor, parse_data_two_sensors
-from sensor import Sensor
+from modules.sensor import Sensor
 
 redis_ok = False
 serial_ok = False
