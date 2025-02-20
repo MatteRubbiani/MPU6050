@@ -4,8 +4,9 @@ import time
 from constants import BLE_NAME, CHARACTERISTIC_UUID
 from modules.ble_reader import BleReader
 from modules.data_handler import DataHandler
+from modules.leg import Leg
 from modules.sensor import Sensor
-
+from streaming.socket_streaming import SocketStreaming
 
 
 async def check(storage):
@@ -19,12 +20,16 @@ async def main():
     sensor_1 = Sensor()
     sensor_2 = Sensor()
     data_handler = DataHandler(sensor_1, sensor_2)
+    leg = Leg(sensor_1, sensor_2)
+
     ble_reader = BleReader(BLE_NAME, CHARACTERISTIC_UUID, data_handler)
+    streamer = SocketStreaming(leg)
 
     ble_task = asyncio.create_task(ble_reader.connect_and_listen())
-    process_task = asyncio.create_task(check(data_handler))
+    # process_task = asyncio.create_task(check(data_handler))
+    streaming_task = asyncio.create_task(streamer.start_server())
 
-    await asyncio.gather(ble_task, process_task)
+    await asyncio.gather(ble_task, streaming_task)
 
 if __name__ == "__main__":
     asyncio.run(main())

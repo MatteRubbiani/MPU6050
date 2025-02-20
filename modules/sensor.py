@@ -57,10 +57,15 @@ class Sensor:
             self.__calculate_and_set_real_world_position()
 
     def get_pose(self, data_type="#", get_acceleration=False, dumped=False, fixed_position = True, ):
+        # a breve non si userà più
         pose_undumped = {
             "data_type": data_type
         }
         if data_type == "#":
+            # todo: sistemare sensore, standardizzare un po' :-)
+            if len(self.timestamps) == 0:
+                return None
+
             pose_undumped["timestamp"] = self.timestamps[-1]
             pose_undumped["quaternion"] = self.quaternions[-1].tolist()
             # todo: calculate total quaternion (facciamo sparire initial quaternion da three.js)
@@ -73,6 +78,26 @@ class Sensor:
 
         data_to_publish = json.dumps(pose_undumped) if dumped else pose_undumped
         return data_to_publish
+
+    def get_initial_properties(self):
+        return {
+            "initial_quaternion": self.initial_quaternion.tolist(),
+            "initial_position": self.initial_position.tolist()
+        }
+
+    def get_current_properties(self, absolute=True):
+        if len(self.timestamps) == 0:
+            return None
+
+        current_relative_quaternion = self.quaternions[-1].tolist()
+        current_relative_position = self.real_world_positions[-1].tolist() # ancora da ruotare del quatenione iniziale, per ora ce ne sbattiamo
+        absolute_quaternion = calculate_absolute_quaternion(current_relative_quaternion, self.initial_quaternion)
+        print("absolute_quaternion", absolute_quaternion, "initial_quaternion", self.initial_quaternion)
+        return {
+            "current_quaternion": absolute_quaternion.tolist(),
+            "current_position": [0, 0, 0],
+            "current_acceleration": [0, 0, 0]
+        }
 
     def __calculate_and_set_real_world_acceleration(self, quaternion, acceleration):
         self.real_world_accelerations.append(R.from_quat(quaternion).apply(acceleration))
@@ -126,5 +151,22 @@ def quaternion_from_recorded_g_giac(recorded_g):
     return R.from_rotvec(theta * np.array(axis)).as_quat()
 
 
+def calculate_absolute_quaternion(q_rel_array, initial_quaternion):
+    # [x, y, z, w] fo scipy
+    q_r = R.from_quat(q_rel_array).as_quat()  # Ensure normalized
+    q_init = R.from_quat(initial_quaternion).as_quat()
+
+    # Compute q_delta_real_world = InitialQuaternionToUse * q_r
+    q_delta_real_world = (R.from_quat(q_init) * R.from_quat(q_r)).as_quat()
+    #todo: boh andrà bene?
+    print("q_delta_real_world", q_delta_real_world)
+
+    # Compute q_real_world_total = q_delta_real_world * InitialQuaternionToUse
+    q_real_world_total = (R.from_quat(q_delta_real_world) * R.from_quat(q_init)).as_quat()
+
+    # Update the sensor object's quaternion (assuming it stores as a NumPy array)
+
+    return q_delta_real_world  # Also returns NumPy array
+
 if __name__ == "__main__":
-    print(quaternion_from_recorded_g_giac(np.array([-1, 0, 0])))
+    print(calculate_absolute_quaternion(np.array([0, 0, -1, 1]), np.array([0, 0, 1, 1])))
