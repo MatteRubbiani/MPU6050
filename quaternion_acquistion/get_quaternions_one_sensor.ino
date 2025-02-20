@@ -6,7 +6,6 @@
 #define MPU6050_ADDR_69 0x69  // I2C address of MPU6050
 #define ACCEL_XOUT_H 0x3B  // First register of accelerometer data
 #define PWR_MGMT_1   0x6B  // Power management register
-#define USER_CTRL 0x6A  // User control register
 
 // MPUs with their I2C ID
 MPU6050 mpu68(MPU6050_ADDR_68);
@@ -97,8 +96,8 @@ String get_initial_acceleration(int _device_number){
   int16_t _ax69, _ay69, _az69;
 
   // raw accelerations in m/s^2
-  int16_t _gx68, _gy68, _gz68;
-  int16_t _gx69, _gy69, _gz69;
+  float _gx68, _gy68, _gz68;
+  float _gx69, _gy69, _gz69;
 
 
   if (_device_number == 1) {
@@ -111,9 +110,9 @@ String get_initial_acceleration(int _device_number){
     _ay68 = (Wire.read() << 8) | Wire.read();  // Y-axis
     _az68 = (Wire.read() << 8) | Wire.read();  // Z-axis
 
-    float _gx68 = _ax68 / ACCEL_SCALE * GRAVITY;
-    float _gy68 = _ay68 / ACCEL_SCALE * GRAVITY;
-    float _gz68 = _az68 / ACCEL_SCALE * GRAVITY;
+    _gx68 = _ax68 / ACCEL_SCALE * GRAVITY;
+    _gy68 = _ay68 / ACCEL_SCALE * GRAVITY;
+    _gz68 = _az68 / ACCEL_SCALE * GRAVITY;
 
     if (_gx68 != 0 && _gy68 != 0 && _gz68 != 0) {
       String dataToSend = "*-, " + 
@@ -148,12 +147,12 @@ String get_initial_acceleration(int _device_number){
     _ay69 = (Wire.read() << 8) | Wire.read();  // Y-axis
     _az69 = (Wire.read() << 8) | Wire.read();  // Z-axis
     
-    float _gx68 = _ax68 / ACCEL_SCALE * GRAVITY;
-    float _gy68 = _ay68 / ACCEL_SCALE * GRAVITY;
-    float _gz68 = _az68 / ACCEL_SCALE * GRAVITY;
-    float _gx69 = _ax69 / ACCEL_SCALE * GRAVITY;
-    float _gy69 = _ay69 / ACCEL_SCALE * GRAVITY;
-    float _gz69 = _az69 / ACCEL_SCALE * GRAVITY;
+    _gx68 = _ax68 / ACCEL_SCALE * GRAVITY;
+    _gy68 = _ay68 / ACCEL_SCALE * GRAVITY;
+    _gz68 = _az68 / ACCEL_SCALE * GRAVITY;
+    _gx69 = _ax69 / ACCEL_SCALE * GRAVITY;
+    _gy69 = _ay69 / ACCEL_SCALE * GRAVITY;
+    _gz69 = _az69 / ACCEL_SCALE * GRAVITY;
   
     if (_gx68 != 0 && _gy68 != 0 && _gz68 != 0 && _gx69 != 0 && _gy69 != 0 && _gz69 != 0) {
       String dataToSend = "**, " + 
