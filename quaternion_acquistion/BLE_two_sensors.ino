@@ -6,7 +6,6 @@
 #include "I2Cdev.h"
 #include "MPU6050_6Axis_MotionApps612.h"
 
-
 // BLE VARIABLES & CONSTANTS//
 
 // UUIDs for Service & Characteristic (Must match Python script)
@@ -45,38 +44,11 @@ float GRAVITY = 9.81;
 MPU6050 mpu68(MPU6050_ADDR_68);
 MPU6050 mpu69(MPU6050_ADDR_69);
 
-// FIFO storage buffers
-uint8_t fifo_buffer68[64];  // FIFO storage buffer
-uint8_t fifo_buffer69[64];  // FIFO storage buffer
-
-// Error state variable (0 = success, !0 = error)
-uint8_t error_code = 0U;
-
-// Orientation/motion vars for initial calibration
-// raw accelerations
-int16_t _ax68, _ay68, _az68;
-int16_t _ax69, _ay69, _az69;
-
-// raw accelerations in m/s^2
-int16_t _gx68, _gy68, _gz68;
-int16_t _gx69, _gy69, _gz69;
-
-// Orientation/motion vars for successive motion elaboration
-Quaternion q68;  // [w, x, y, z]
-Quaternion last_q68;
-Quaternion q69;  // [w, x, y, z]
-Quaternion last_q69;
-VectorInt16 a68;        // [x, y, z]
-VectorInt16 a69;        // [x, y, z]
-VectorInt16 aReal68;    // [x, y, z]
-VectorInt16 aReal69;    // [x, y, z]
-VectorFloat gravity68;  // [x, y, z]
-VectorFloat gravity69;  // [x, y, z]
-
 // Other variables
 int device_number;
 int loop_number;
 int const_values_number;
+bool initial_gravity_ok = false;
 String message;
 
 // MAIN
@@ -86,9 +58,17 @@ void setup() {
   Wire.begin();
   Wire.setClock(100000);
   delay(3000);
+
   device_number = device_count();
   set_MPU6050(device_number);
-  message = get_initial_acceleration(device_number);
+
+  while (!initial_gravity_ok) {
+    message = get_initial_acceleration(device_number);
+    if (message != "error") {
+      initial_gravity_ok = true;
+    }
+  }
+
   device_calibration(device_number);
 }
 
@@ -183,6 +163,14 @@ void set_MPU6050(int _device_number) {
 }
 
 String get_initial_acceleration(int _device_number){
+  // raw accelerations
+  int16_t _ax68, _ay68, _az68;
+  int16_t _ax69, _ay69, _az69;
+  
+  // raw accelerations in m/s^2
+  float _gx68, _gy68, _gz68;
+  float _gx69, _gy69, _gz69;
+  
   if (_device_number == 1) {
     Wire.beginTransmission(MPU6050_ADDR_68);
     Wire.write(ACCEL_XOUT_H);  // Start reading from ACCEL_XOUT_H
@@ -193,9 +181,9 @@ String get_initial_acceleration(int _device_number){
     _ay68 = (Wire.read() << 8) | Wire.read();  // Y-axis
     _az68 = (Wire.read() << 8) | Wire.read();  // Z-axis
 
-    float _gx68 = _ax68 / ACCEL_SCALE * GRAVITY;
-    float _gy68 = _ay68 / ACCEL_SCALE * GRAVITY;
-    float _gz68 = _az68 / ACCEL_SCALE * GRAVITY;
+     _gx68 = _ax68 / ACCEL_SCALE * GRAVITY;
+    _gy68 = _ay68 / ACCEL_SCALE * GRAVITY;
+    _gz68 = _az68 / ACCEL_SCALE * GRAVITY;
 
     if (_gx68 != 0 && _gy68 != 0 && _gz68 != 0) {
       String dataToSend = "*-, " + 
@@ -207,7 +195,7 @@ String get_initial_acceleration(int _device_number){
     }
 
     else {
-      return "*-, error in g measure\n";
+      return "error";
     }
   }
 
@@ -230,12 +218,12 @@ String get_initial_acceleration(int _device_number){
     _ay69 = (Wire.read() << 8) | Wire.read();  // Y-axis
     _az69 = (Wire.read() << 8) | Wire.read();  // Z-axis
     
-    float _gx68 = _ax68 / ACCEL_SCALE * GRAVITY;
-    float _gy68 = _ay68 / ACCEL_SCALE * GRAVITY;
-    float _gz68 = _az68 / ACCEL_SCALE * GRAVITY;
-    float _gx69 = _ax69 / ACCEL_SCALE * GRAVITY;
-    float _gy69 = _ay69 / ACCEL_SCALE * GRAVITY;
-    float _gz69 = _az69 / ACCEL_SCALE * GRAVITY;
+    _gx68 = _ax68 / ACCEL_SCALE * GRAVITY;
+    _gy68 = _ay68 / ACCEL_SCALE * GRAVITY;
+    _gz68 = _az68 / ACCEL_SCALE * GRAVITY;
+    _gx69 = _ax69 / ACCEL_SCALE * GRAVITY;
+    _gy69 = _ay69 / ACCEL_SCALE * GRAVITY;
+    _gz69 = _az69 / ACCEL_SCALE * GRAVITY;
   
     if (_gx68 != 0 && _gy68 != 0 && _gz68 != 0 && _gx69 != 0 && _gy69 != 0 && _gz69 != 0) {
       String dataToSend = "**, " + 
@@ -250,12 +238,13 @@ String get_initial_acceleration(int _device_number){
     }
     
     else {
-      return "**, error in g measure\n";
+      return "error";
     }
   } 
 }
 
 void device_calibration(int _device_number) {
+  uint8_t error_code = 0U;
   // device managing
   if (_device_number == 1) {
     // initialize device
@@ -369,6 +358,21 @@ bool are_quaternions_equal(Quaternion q1, Quaternion q2, float epsilon = 0.01) {
 }
 
 String get_quaternion_and_acceleration(int _device_number) {
+  // FIFO storage buffers
+  uint8_t fifo_buffer68[64];  // FIFO storage buffer
+  uint8_t fifo_buffer69[64];  // FIFO storage buffer
+
+  Quaternion q68;  // [w, x, y, z]
+  Quaternion last_q68;
+  Quaternion q69;  // [w, x, y, z]
+  Quaternion last_q69;
+  VectorInt16 a68;        // [x, y, z]
+  VectorInt16 a69;        // [x, y, z]
+  VectorInt16 aReal68;    // [x, y, z]
+  VectorInt16 aReal69;    // [x, y, z]
+  VectorFloat gravity68;  // [x, y, z]
+  VectorFloat gravity69;  // [x, y, z]
+
   if (_device_number == 1) {
     // test the connection before trying to get the data
     while (!mpu68.testConnection()) {
@@ -403,21 +407,7 @@ String get_quaternion_and_acceleration(int _device_number) {
                         String(ax) + ", " +
                         String(ay) + ", " +
                         String(az) + "\n ";
-    
-    if (are_quaternions_equal(q68, last_q68)) {
-      const_values_number++;
-    }
-
-    else {
-      last_q68 = q68;
-      const_values_number = 0;
-    }
-
-    if (const_values_number > 19) {
-      dataToSend = get_initial_acceleration(_device_number);
-      const_values_number = 0;
-    }
-
+  
     delay(50);
     return dataToSend;
   }
@@ -477,20 +467,6 @@ String get_quaternion_and_acceleration(int _device_number) {
                         String(ay_69) + ", " +
                         String(az_69) + "\n ";
 
-    if (are_quaternions_equal(q68, last_q68) && are_quaternions_equal(q69, last_q69)) {
-      const_values_number++;
-    }
-
-    else {
-      last_q68 = q68;
-      last_q69 = q69;
-      const_values_number = 0;
-    }
-
-    if (const_values_number > 19) {
-      dataToSend = get_initial_acceleration(_device_number);
-      const_values_number = 0;
-    }
 
     delay(50);
     return dataToSend;
