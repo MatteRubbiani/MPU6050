@@ -170,7 +170,7 @@ String get_initial_acceleration() {
   _gz68 = _az68 / ACCEL_SCALE * GRAVITY;
 
   if (_gx68 != 0 && _gy68 != 0 && _gz68 != 0) {
-    String dataToSend = "*-, " + 
+    String dataToSend = "*, " + 
                       String(_gx68) + ", " +
                       String(_gy68) + ", " +
                       String(_gz68) + "\n ";
@@ -271,7 +271,7 @@ String get_quaternion_and_acceleration() {
   float az = aReal68.z / ACCEL_SCALE * GRAVITY;
 
   // Print the timestamp and quaternions
-  String dataToSend = "#-, " + 
+  String dataToSend = "#, " + 
                       String(currentTime) + ", " + 
                       String(q68.w, 2) + ", " + 
                       String(q68.x, 2) + ", " + 
