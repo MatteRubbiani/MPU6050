@@ -1,7 +1,7 @@
 import asyncio
 from bleak import BleakClient, BleakScanner, BleakError
 
-from modules.data_handler import DataHandler
+from modules.data_handler_v2 import DataHandler
 
 
 class BleReader:
@@ -29,7 +29,7 @@ class BleReader:
         """Callback when a notification is received."""
         try:
             decoded_data = data.decode("utf-8")
-            self.data_handler.add_data(decoded_data)
+            self.data_handler.add_data(decoded_data, self.characteristic_uuid)
             # print(f"🔔 Received from {sender}: {decoded_data}")
         except Exception as e:
             print(f"❌ Error decoding: {e}, Raw data: {data}")
@@ -61,7 +61,7 @@ class BleReader:
                     continue
 
                 await self.client.start_notify(self.characteristic_uuid, self._notification_handler)
-                print("Listening for notifications. Press Ctrl+C to stop.")
+                print("Listening for notifications.")
 
                 while True:
                     if not self.client.is_connected:

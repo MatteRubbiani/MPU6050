@@ -3,7 +3,7 @@ import time
 
 from constants import BLE_NAME, CHARACTERISTIC_UUID
 from modules.ble_reader import BleReader
-from modules.data_handler import DataHandler
+from modules.data_handler_v2 import DataHandler
 from modules.leg import Leg
 from modules.sensor import Sensor
 from streaming.socket_streaming import SocketStreaming
@@ -19,7 +19,7 @@ async def check(storage):
 async def main():
     sensor_1 = Sensor()
     sensor_2 = Sensor()
-    data_handler = DataHandler(sensor_1, sensor_2)
+    data_handler = DataHandler(sensor_1, sensor_2, CHARACTERISTIC_UUID, "nop")
     leg = Leg(sensor_1, sensor_2)
 
     ble_reader = BleReader(BLE_NAME, CHARACTERISTIC_UUID, data_handler)
