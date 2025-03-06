@@ -27,7 +27,7 @@ class SocketStreaming:
         try:
             while True:
                 #todo: ovviamente sistemare
-                data = self.leg.get_leg_pose("#-")
+                data = self.leg.get_sensor_pose()
                 await websocket.send(json.dumps(data))
 
                 await asyncio.sleep(PYTHON_SAMPLING_RATE)

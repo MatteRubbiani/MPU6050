@@ -5,9 +5,10 @@ from modules.data_handler_v2 import DataHandler
 
 
 class BleReader:
-    def __init__(self, device_name: str, characteristic_uuid: str, data_handler: DataHandler):
+    def __init__(self, device_name: str, characteristic_uuid_notify: str, data_handler: DataHandler, characteristic_uuid_command):
         self.device_name = device_name
-        self.characteristic_uuid = characteristic_uuid
+        self.characteristic_uuid_notify = characteristic_uuid_notify
+        self.characteristic_uuid_command = characteristic_uuid_command
         self.client = None
         self.address = None
 
@@ -29,8 +30,8 @@ class BleReader:
         """Callback when a notification is received."""
         try:
             decoded_data = data.decode("utf-8")
-            self.data_handler.add_data(decoded_data, self.characteristic_uuid)
-            # print(f"🔔 Received from {sender}: {decoded_data}")
+            self.data_handler.add_data(decoded_data, self.characteristic_uuid_notify)
+            print(f"🔔 Received from {sender}: {decoded_data}")
         except Exception as e:
             print(f"❌ Error decoding: {e}, Raw data: {data}")
 
@@ -54,13 +55,13 @@ class BleReader:
                 services = await self.client.get_services()
                 characteristic_uuids = [char.uuid for service in services for char in service.characteristics]
 
-                if self.characteristic_uuid not in characteristic_uuids:
+                if self.characteristic_uuid_notify not in characteristic_uuids:
                     print("Characteristic UUID not found. Check your ESP32 code.")
                     await self.client.disconnect()
                     self.address = None
                     continue
 
-                await self.client.start_notify(self.characteristic_uuid, self._notification_handler)
+                await self.client.start_notify(self.characteristic_uuid_notify, self._notification_handler)
                 print("Listening for notifications.")
 
                 while True:
@@ -70,7 +71,7 @@ class BleReader:
             except (asyncio.CancelledError, KeyboardInterrupt):
                 print("Stopping notifications...")
                 if self.client:
-                    await self.client.stop_notify(self.characteristic_uuid)
+                    await self.client.stop_notify(self.characteristic_uuid_notify)
                     await self.client.disconnect()
                 break
             except BleakError as e:
@@ -83,10 +84,43 @@ class BleReader:
 
         print("Disconnected.")
 
+    # provo ad aggiungere
+    async def send_data(self, message: str):
+        """Send data to the ESP32 over BLE."""
+        if self.client and self.client.is_connected:
+            try:
+                await self.client.write_gatt_char(self.characteristic_uuid_command, message.encode("utf-8"), response=True)
+                print(f"📤 Sent: {message}")
+            except Exception as e:
+                print(f"❌ Failed to send: {e}")
+        else:
+            print("⚠️ Not connected. Cannot send data.")
+
+
+async def main():
+    ESP32_NAME = "Long name works now"  # Change to match your ESP32 device name
+    CHARACTERISTIC_UUID_NOTIFY = "beb5483e-36e1-4688-b7f5-ea07361b26a8"  # Must match ESP32 code
+    CHARACTERISTIC_UUID_COMMAND = "beb5483e-36e1-4688-b7f5-ea07361b26a9"
+    from modules.sensor import Sensor
+    sensor_1 = Sensor()
+    sensor_2 = Sensor()
+    data_handler = DataHandler(sensor_1, sensor_2, CHARACTERISTIC_UUID_NOTIFY, "nop")
+    ble_reader = BleReader(ESP32_NAME, CHARACTERISTIC_UUID_NOTIFY, data_handler, CHARACTERISTIC_UUID_COMMAND)
+
+
+
+    async def user_input_loop(b_r):
+        async def async_input(prompt: str) -> str:
+            """Get user input asynchronously without blocking."""
+            return await asyncio.to_thread(input, prompt)
+        while True:
+            message = await async_input("📩 Enter message: ")
+            await b_r.send_data(message)
+    input_task = asyncio.create_task(user_input_loop(ble_reader))
+    logging_task = asyncio.create_task(ble_reader.connect_and_listen())
+
+    await asyncio.gather(logging_task, input_task)
+    asyncio.run(ble_reader.connect_and_listen())
 
 if __name__ == "__main__":
-    ESP32_NAME = "Long name works now"  # Change to match your ESP32 device name
-    CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8"  # Must match ESP32 code
-    data_handler = DataHandler(1, 2)
-    ble_reader = BleReader(ESP32_NAME, CHARACTERISTIC_UUID, data_handler)
-    asyncio.run(ble_reader.connect_and_listen())
+    asyncio.run(main())
